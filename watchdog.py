@@ -75,14 +75,14 @@ def _load_runtime_repo():
 def push_runtime_to_repo(api_url, auth_token):
     """PUT runtime.json into the configured repo via GitHub Contents API.
 
-    Returns (ok: bool, info: str).
-    Best-effort: needs both PAT and RUNTIME_REPO to be configured.
+    In multi-user mode the token is NOT shipped in the repo file: only the
+    backend URL. Any client must authenticate via /api/login.
     """
     pat = _load_pat()
     repo = _load_runtime_repo()
     if not pat or not repo:
         return False, "no PAT or runtime_repo"
-    payload = {"api": api_url, "token": auth_token, "ts": int(time.time())}
+    payload = {"api": api_url, "ts": int(time.time())}
     body = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
     b64 = _b64.b64encode(body.encode("utf-8")).decode("ascii")
     headers = {
