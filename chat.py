@@ -120,6 +120,9 @@ def _print_message(m):
     print(f"id: {m['id']}")
     print(f"ts: {m['ts']:.3f}  iso: {m.get('iso','')}")
     print(f"role: {m['role']}")
+    print(f"user_role: {m.get('user_role', m['role'])}")
+    print(f"username: {m.get('username', '')}")
+    print(f"conv_id: {m.get('conv_id', 'c_global')}")
     if m.get("text"):
         print("text:")
         print(m["text"])
@@ -141,12 +144,16 @@ def cmd_history(n_str):
     print(f"--- TOTAL: {len(msgs)} shown")
 
 
-def cmd_send(text, role="assistant"):
-    r = _req("/api/messages", method="POST", body={"text": text, "role": role})
+def cmd_send(text, conv_id="c_global", role="assistant"):
+    r = _req(
+        "/api/messages",
+        method="POST",
+        body={"text": text, "role": role, "conv_id": conv_id},
+    )
     print(json.dumps(r, ensure_ascii=False, indent=2))
 
 
-def cmd_send_file(path, caption=""):
+def cmd_send_file(path, caption="", conv_id="c_global"):
     if not os.path.exists(path):
         print(json.dumps({"error": f"file not found: {path}"}))
         sys.exit(2)
@@ -169,7 +176,7 @@ def cmd_send_file(path, caption=""):
     msg = _req(
         "/api/messages",
         method="POST",
-        body={"text": caption, "files": [up], "role": "assistant"},
+        body={"text": caption, "files": [up], "role": "assistant", "conv_id": conv_id},
     )
     print(json.dumps(msg, ensure_ascii=False, indent=2))
 
@@ -263,6 +270,17 @@ def cmd_mark_seen():
         print(json.dumps({"ok": True, "last_seen_ts": 0}))
 
 
+def cmd_last_conv():
+    """Print conv_id of the most recent user/admin message."""
+    msgs = get_all_messages()
+    user_msgs = [m for m in msgs if m["role"] == "user"]
+    if not user_msgs:
+        print("c_global")
+        return
+    last = max(user_msgs, key=lambda m: m["ts"])
+    print(last.get("conv_id", "c_global"))
+
+
 def cmd_url():
     r = _req("/api/url")
     print(json.dumps(r, ensure_ascii=False, indent=2))
@@ -300,7 +318,9 @@ Commands:
   count                        Total / user / assistant counts
   history N                    Show last N messages
   send "text"                  Send assistant message
-  send-file <path> [caption]   Send file (assistant role)
+  send [--conv <id>] "text"    Send assistant message (default: c_global)
+  send-file [--conv <id>] <path> [caption]   Send file (assistant role)
+  last-conv                    Print conv_id of the most recent user message
   typing on|off                Toggle 'Captain typing…' indicator
   doing "text" | off           Set/clear current agent action (shown in UI)
   wait <timeout_s> <interval>  Legacy short-poll fallback
@@ -327,15 +347,37 @@ def main():
     elif cmd == "history":
         cmd_history(args[0] if args else "20")
     elif cmd == "send":
-        if not args:
+        conv = "c_global"
+        rest = []
+        i = 0
+        while i < len(args):
+            if args[i] == "--conv" and i + 1 < len(args):
+                conv = args[i + 1]
+                i += 2
+            else:
+                rest.append(args[i])
+                i += 1
+        if not rest:
             print("send requires text arg")
             sys.exit(2)
-        cmd_send(args[0])
+        cmd_send(rest[0], conv_id=conv)
     elif cmd == "send-file":
-        if not args:
+        conv = "c_global"
+        rest = []
+        i = 0
+        while i < len(args):
+            if args[i] == "--conv" and i + 1 < len(args):
+                conv = args[i + 1]
+                i += 2
+            else:
+                rest.append(args[i])
+                i += 1
+        if not rest:
             print("send-file requires path")
             sys.exit(2)
-        cmd_send_file(args[0], args[1] if len(args) > 1 else "")
+        cmd_send_file(rest[0], rest[1] if len(rest) > 1 else "", conv_id=conv)
+    elif cmd == "last-conv":
+        cmd_last_conv()
     elif cmd == "typing":
         if not args:
             print("typing requires on|off")
