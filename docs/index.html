@@ -355,13 +355,28 @@ async function refreshConvs(){
   if (!CONVS.find(c => c.id === CONV_ID)) { CONV_ID = 'c_global'; localStorage.setItem(LS_CONV, CONV_ID); }
   renderConvLabel();
 }
+function convDisplayLabel(c){
+  if (c.type === 'captain_dm') return '🤖 Captain';
+  if (c.type === 'dm') return dmLabel(c);
+  return c.name;
+}
+function convIcon(c){
+  if (c.type === 'captain_dm') return '★';
+  if (c.type === 'dm') return '🔒';
+  return '#';
+}
+function convSortKey(c){
+  if (c.type === 'captain_dm') return 0;
+  if (c.type === 'global')     return 1;
+  return 2;
+}
 function renderConvList(){
   const box = $('conv-list'); box.innerHTML = '';
-  CONVS.forEach(c => {
+  const sorted = CONVS.slice().sort((a,b) => convSortKey(a) - convSortKey(b));
+  sorted.forEach(c => {
     const it = document.createElement('div');
     it.className = 'sb-item' + (c.id === CONV_ID ? ' active' : '');
-    const label = c.type === 'dm' ? dmLabel(c) : c.name;
-    it.innerHTML = `<span>${escapeHTML(label)}</span><span style="font-size:10.5px;color:var(--muted)">${c.type === 'dm' ? '🔒' : '#'}</span>`;
+    it.innerHTML = `<span>${escapeHTML(convDisplayLabel(c))}</span><span style="font-size:10.5px;color:var(--muted)">${convIcon(c)}</span>`;
     it.onclick = () => { CONV_ID = c.id; localStorage.setItem(LS_CONV, CONV_ID); lastTs = 0; totalMsgs = 0; document.querySelectorAll('.row').forEach(r => r.remove()); renderConvList(); renderConvLabel(); poll(); };
     box.appendChild(it);
   });
@@ -373,7 +388,7 @@ function dmLabel(c){
 }
 function renderConvLabel(){
   const c = CONVS.find(x => x.id === CONV_ID);
-  $('conv-label').textContent = (c ? (c.type === 'dm' ? dmLabel(c) : c.name) : 'Global') + ' ▾';
+  $('conv-label').textContent = (c ? convDisplayLabel(c) : 'Global') + ' ▾';
 }
 $('conv-label').onclick = () => $('new-dm-btn').click();
 
