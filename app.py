@@ -9,6 +9,12 @@ v3 changes (auth):
 - / (index) accepts ?t=<t> and embeds it into the served HTML so the JS can
   pick it up and store in localStorage; subsequent fetches include it.
 - /api/wait long-poll, threading.Event, /api/url, /api/state etc unchanged.
+
+v4 changes (CORS for external frontend like GitHub Pages):
+- Adds CORS headers on every response: Access-Control-Allow-Origin: *,
+  Allow-Methods: GET, POST, OPTIONS, Allow-Headers: Content-Type, X-Auth-Token,
+  Authorization.
+- Handles OPTIONS preflight before auth check.
 """
 import json
 import os
@@ -74,6 +80,9 @@ def _check_auth():
 @app.before_request
 def _enforce_auth():
     path = request.path or ""
+    # CORS preflight: allow without auth
+    if request.method == "OPTIONS":
+        return make_response(("", 204))
     # Public endpoints
     if path == "/health":
         return None
@@ -85,6 +94,15 @@ def _enforce_auth():
         if not _check_auth():
             return jsonify({"error": "unauthorized"}), 401
     return None
+
+
+@app.after_request
+def _cors(resp):
+    resp.headers["Access-Control-Allow-Origin"] = "*"
+    resp.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+    resp.headers["Access-Control-Allow-Headers"] = "Content-Type, X-Auth-Token, Authorization"
+    resp.headers["Access-Control-Max-Age"] = "86400"
+    return resp
 
 
 def load_messages():
