@@ -24,6 +24,13 @@ cp -f "$SRC_DIR"/app.py "$SRC_DIR"/chat.py "$SRC_DIR"/watchdog.py "$SRC_DIR"/rem
 cp -f "$SRC_DIR"/index.html "$BASE/"
 chmod +x "$BASE"/*.py
 
+# Pages-gateway config (optional). Env wins; otherwise persist a default.
+if [ -n "$PAGES_URL" ]; then
+  echo "$PAGES_URL" > "$BASE/pages_url.txt"
+elif [ ! -s "$BASE/pages_url.txt" ]; then
+  echo "https://maj941.github.io/chat/" > "$BASE/pages_url.txt"
+fi
+
 # cloudflared
 if [ ! -x /tmp/cloudflared ]; then
   curl -fsSL -o /tmp/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64

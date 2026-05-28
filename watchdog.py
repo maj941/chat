@@ -23,12 +23,25 @@ TUNNEL_LOG = f"{BASE}/tunnel.log"
 SERVER_LOG = f"{BASE}/server.log"
 WATCHDOG_LOG = f"{BASE}/watchdog.log"
 TOKEN_FILE = f"{BASE}/auth_token.txt"
+PAGES_URL_FILE = f"{BASE}/pages_url.txt"  # optional: full Pages URL like https://maj941.github.io/chat/
 URL_RE = re.compile(r"https://[a-z0-9-]+\.trycloudflare\.com")
 
 
 def _load_token():
     try:
         with open(TOKEN_FILE) as f:
+            return f.read().strip()
+    except Exception:
+        return ""
+
+
+def _load_pages_url():
+    # Env var has priority, then file
+    p = os.environ.get("PAGES_URL", "").strip()
+    if p:
+        return p
+    try:
+        with open(PAGES_URL_FILE) as f:
             return f.read().strip()
     except Exception:
         return ""
@@ -206,7 +219,13 @@ def main():
         if url:
             last_url_seen_ts = time.time()
             token = _load_token()
-            display_url = f"{url}/?t={token}" if token else url
+            pages = _load_pages_url()
+            if pages:
+                # Format via Pages gateway: <pages>/?api=<url>&t=<token>
+                pages_clean = pages.rstrip("/") + "/"
+                display_url = f"{pages_clean}?api={url}&t={token}" if token else f"{pages_clean}?api={url}"
+            else:
+                display_url = f"{url}/?t={token}" if token else url
             if display_url != last_known_url:
                 log(f"URL changed: {last_known_url!r} -> {display_url!r}")
                 had_prev = bool(last_known_url)
