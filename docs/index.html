@@ -16,6 +16,7 @@
     --accent-2: #5b8def;
     --user: #2a3a5c;
     --assistant: #1e2229;
+    --other: #1a1f28;
     --ok: #4ade80;
     --warn: #facc15;
     --danger: #f87171;
@@ -23,62 +24,98 @@
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; height: 100%; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 14.5px; }
   body { display: flex; flex-direction: column; height: 100vh; }
-  header { display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; border-bottom: 1px solid var(--border); background: linear-gradient(180deg, rgba(124,92,255,0.08), transparent); flex: 0 0 auto; }
-  .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; letter-spacing: 0.2px; }
+  header { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid var(--border); background: linear-gradient(180deg, rgba(124,92,255,0.08), transparent); flex: 0 0 auto; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; }
   .logo { width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, var(--accent), var(--accent-2)); display: grid; place-items: center; font-weight: 700; color: white; font-size: 14px; }
-  .meta { font-size: 12px; color: var(--muted); display: flex; gap: 14px; align-items: center; }
-  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--border); font-size: 11.5px; color: var(--muted); }
+  .meta { font-size: 12px; color: var(--muted); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--border); font-size: 11.5px; color: var(--muted); cursor: default; }
+  .pill.clickable { cursor: pointer; }
+  .pill.clickable:hover { color: var(--text); border-color: var(--accent); }
+  .pill.admin { color: var(--warn); border-color: rgba(250,204,21,.35); }
+  .pill.captain { color: var(--accent); border-color: rgba(124,92,255,.4); }
+  .pill.user { color: var(--ok); border-color: rgba(74,222,128,.3); }
+  .pill.banned { color: var(--danger); border-color: rgba(248,113,113,.3); }
   .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
   .dot.live { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
   .dot.typing { background: var(--warn); box-shadow: 0 0 8px var(--warn); animation: pulse 1.1s infinite; }
   @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
-  main { flex: 1 1 auto; overflow-y: auto; padding: 22px 18px 8px; display: flex; flex-direction: column; gap: 12px; }
+  .body { flex: 1 1 auto; display: flex; min-height: 0; }
+  .sidebar { width: 220px; flex: 0 0 220px; border-right: 1px solid var(--border); background: var(--panel); display: flex; flex-direction: column; }
+  .sb-section { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+  .sb-section h3 { margin: 0 0 8px; font-size: 11px; text-transform: uppercase; color: var(--muted); letter-spacing: .3px; }
+  .sb-list { display: flex; flex-direction: column; gap: 4px; }
+  .sb-item { padding: 7px 9px; border-radius: 7px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 7px; justify-content: space-between; }
+  .sb-item:hover { background: var(--panel-2); }
+  .sb-item.active { background: rgba(124,92,255,.18); border: 1px solid rgba(124,92,255,.35); }
+  .sb-btn { width: 100%; padding: 7px 9px; border-radius: 7px; border: 1px dashed var(--border); background: transparent; color: var(--muted); cursor: pointer; font-size: 12px; }
+  .sb-btn:hover { color: var(--text); border-color: var(--accent); }
+  main { flex: 1 1 auto; overflow-y: auto; padding: 18px 16px 6px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
   main::-webkit-scrollbar { width: 8px; }
   main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
   .row { display: flex; width: 100%; }
-  .row.user { justify-content: flex-end; }
-  .row.assistant { justify-content: flex-start; }
-  .bubble { max-width: min(72%, 720px); padding: 10px 14px; border-radius: 14px; line-height: 1.45; word-wrap: break-word; white-space: pre-wrap; border: 1px solid var(--border); position: relative; }
-  .row.user .bubble { background: var(--user); border-color: #34507a; border-bottom-right-radius: 4px; }
-  .row.assistant .bubble { background: var(--assistant); border-bottom-left-radius: 4px; }
-  .bubble .who { font-size: 11px; color: var(--muted); margin-bottom: 4px; font-weight: 600; letter-spacing: 0.3px; text-transform: uppercase; }
-  .bubble .ts { font-size: 10.5px; color: var(--muted); margin-top: 6px; opacity: 0.7; }
+  .row.self { justify-content: flex-end; }
+  .row.other { justify-content: flex-start; }
+  .bubble { max-width: min(72%, 720px); padding: 9px 13px; border-radius: 14px; line-height: 1.4; word-wrap: break-word; white-space: pre-wrap; border: 1px solid var(--border); position: relative; }
+  .row.self .bubble { background: var(--user); border-color: #34507a; border-bottom-right-radius: 4px; }
+  .row.other .bubble { background: var(--other); border-bottom-left-radius: 4px; }
+  .bubble.captain { background: var(--assistant); border-color: rgba(124,92,255,.4); }
+  .bubble .who { font-size: 11px; color: var(--muted); margin-bottom: 4px; font-weight: 600; letter-spacing: .3px; display: flex; gap: 6px; align-items: center; }
+  .bubble .ts { font-size: 10.5px; color: var(--muted); margin-top: 5px; opacity: .7; }
+  .bubble .delete { position: absolute; top: 4px; right: 6px; color: var(--muted); cursor: pointer; font-size: 13px; opacity: 0; transition: opacity .12s; }
+  .bubble:hover .delete { opacity: .7; }
+  .bubble .delete:hover { color: var(--danger); opacity: 1; }
   .files { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
   .file-card { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 8px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); font-size: 12.5px; color: var(--text); text-decoration: none; }
   .file-card:hover { background: rgba(255,255,255,0.08); }
-  .file-card .icon { opacity: 0.8; }
   .img-prev { display: block; max-width: 320px; max-height: 320px; border-radius: 10px; border: 1px solid var(--border); margin-top: 8px; }
-  .typing { display: none; align-items: center; gap: 6px; padding: 8px 14px; color: var(--muted); font-size: 12.5px; }
+  .typing { display: none; align-items: center; gap: 6px; padding: 6px 16px; color: var(--muted); font-size: 12.5px; }
   .typing.on { display: inline-flex; }
   .typing .blob { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); animation: blob 1.2s infinite; }
   .typing .blob:nth-child(2) { animation-delay: 0.15s; }
   .typing .blob:nth-child(3) { animation-delay: 0.3s; }
-  @keyframes blob { 0%,60%,100% { transform: translateY(0); opacity: 0.5;} 30% { transform: translateY(-4px); opacity: 1;} }
-  .typing .action { color: var(--accent-2); font-style: italic; max-width: 60vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  footer { flex: 0 0 auto; border-top: 1px solid var(--border); padding: 10px 14px 14px; background: var(--panel); }
+  @keyframes blob { 0%,60%,100% { transform: translateY(0); opacity: .5;} 30% { transform: translateY(-4px); opacity: 1;} }
+  .typing .action { color: var(--accent-2); font-style: italic; max-width: 50vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  footer { flex: 0 0 auto; border-top: 1px solid var(--border); padding: 8px 12px 12px; background: var(--panel); }
   .composer { display: flex; align-items: flex-end; gap: 8px; }
-  .attach { width: 38px; height: 38px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--border); color: var(--muted); display: grid; place-items: center; cursor: pointer; font-size: 17px; user-select: none; }
+  .attach { width: 38px; height: 38px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--border); color: var(--muted); display: grid; place-items: center; cursor: pointer; font-size: 17px; }
   .attach:hover { color: var(--text); border-color: var(--accent); }
-  textarea { flex: 1 1 auto; min-height: 42px; max-height: 200px; resize: none; padding: 11px 12px; border-radius: 10px; background: var(--panel-2); color: var(--text); border: 1px solid var(--border); font: inherit; outline: none; transition: border-color 0.15s; }
+  textarea { flex: 1 1 auto; min-height: 42px; max-height: 200px; resize: none; padding: 11px 12px; border-radius: 10px; background: var(--panel-2); color: var(--text); border: 1px solid var(--border); font: inherit; outline: none; }
   textarea:focus { border-color: var(--accent); }
   .send { padding: 0 16px; height: 42px; border-radius: 10px; border: 0; background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: white; font-weight: 600; cursor: pointer; font-size: 14px; }
-  .send:disabled { opacity: 0.45; cursor: not-allowed; }
+  .send:disabled { opacity: .45; cursor: not-allowed; }
   .pending { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; }
   .pending .chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 9px; border-radius: 8px; background: var(--panel-2); border: 1px solid var(--border); font-size: 12px; }
   .pending .chip .x { cursor: pointer; color: var(--danger); font-weight: 600; }
-  .drop-overlay { position: fixed; inset: 0; background: rgba(124,92,255,0.18); border: 3px dashed var(--accent); display: none; align-items: center; justify-content: center; color: var(--text); font-size: 18px; font-weight: 600; pointer-events: none; z-index: 1000; }
+  .drop-overlay { position: fixed; inset: 0; background: rgba(124,92,255,.18); border: 3px dashed var(--accent); display: none; align-items: center; justify-content: center; color: var(--text); font-size: 18px; font-weight: 600; pointer-events: none; z-index: 1000; }
   .drop-overlay.on { display: flex; }
   .empty { color: var(--muted); text-align: center; padding: 40px 12px; font-size: 13px; }
-  code, pre { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 13px; }
-  .gate { position: fixed; inset: 0; background: var(--bg); display: grid; place-items: center; z-index: 2000; }
-  .gate .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 22px 26px; width: min(420px, 92%); text-align: center; }
-  .gate h1 { font-size: 16px; margin: 0 0 8px; }
-  .gate p { color: var(--muted); margin: 0 0 14px; font-size: 13px; }
-  .spinner { width: 32px; height: 32px; border: 3px solid var(--panel-2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 12px auto; }
-  @keyframes spin { to { transform: rotate(360deg); } }
+  /* Modals */
+  .modal { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: none; align-items: center; justify-content: center; z-index: 2000; }
+  .modal.on { display: flex; }
+  .modal .card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 22px 24px; width: min(620px, 92%); max-height: 80vh; overflow-y: auto; }
+  .modal h2 { margin: 0 0 12px; font-size: 16px; }
+  .modal .row { gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); justify-content: space-between; }
+  .modal input, .modal select { padding: 8px 10px; border-radius: 7px; background: var(--panel-2); color: var(--text); border: 1px solid var(--border); font: inherit; outline: none; }
+  .modal input:focus, .modal select:focus { border-color: var(--accent); }
+  .modal .btn { padding: 8px 12px; border-radius: 7px; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); cursor: pointer; font: inherit; }
+  .modal .btn.primary { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: white; border: 0; }
+  .modal .btn.danger { color: var(--danger); border-color: rgba(248,113,113,.4); }
+  .modal .btn:hover { border-color: var(--accent); }
+  .modal .close { float: right; cursor: pointer; color: var(--muted); font-size: 18px; }
+  .modal .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .modal .add { display: grid; grid-template-columns: 1fr 1fr auto auto; gap: 8px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
   .err { color: var(--danger); font-size: 12.5px; margin-top: 8px; }
-  .reset { color: var(--muted); font-size: 11.5px; text-decoration: none; padding: 4px 8px; border-radius: 6px; cursor: pointer; }
-  .reset:hover { color: var(--text); background: var(--panel-2); }
+  /* Login screen */
+  .login { position: fixed; inset: 0; background: var(--bg); display: grid; place-items: center; z-index: 3000; }
+  .login .card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 24px 28px; width: min(380px, 92%); }
+  .login h1 { font-size: 16px; margin: 0 0 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .3px; }
+  .login input { width: 100%; padding: 10px; border-radius: 8px; background: var(--panel-2); color: var(--text); border: 1px solid var(--border); font: inherit; outline: none; margin: 6px 0; }
+  .login input:focus { border-color: var(--accent); }
+  .login button { margin-top: 12px; padding: 10px 14px; border: 0; border-radius: 8px; background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: white; font-weight: 600; cursor: pointer; width: 100%; font-size: 14px; }
+  .ws-list { display: flex; flex-direction: column; gap: 4px; max-height: 280px; overflow-y: auto; margin: 10px 0; }
+  .ws-list .it { display: flex; justify-content: space-between; padding: 7px 9px; border-radius: 7px; background: var(--panel-2); cursor: pointer; font-size: 13px; font-family: ui-monospace, monospace; }
+  .ws-list .it:hover { background: rgba(124,92,255,.18); }
+  .ws-edit textarea { width: 100%; min-height: 280px; font-family: ui-monospace, monospace; font-size: 12.5px; }
 </style>
 </head>
 <body>
@@ -86,182 +123,282 @@
     <div class="brand">
       <div class="logo">C</div>
       <div>Captain Capy</div>
-      <span class="pill"><span class="dot live" id="live-dot"></span><span id="live-text">connecting…</span></span>
+      <span class="pill"><span class="dot" id="live-dot"></span><span id="live-text">connecting…</span></span>
     </div>
     <div class="meta">
-      <span class="pill" id="msg-count">0 messages</span>
-      <span class="pill" id="latency">—</span>
-      <a class="reset" href="#" id="reset-link" title="Force re-fetch runtime config">↻ reload</a>
+      <span class="pill clickable" id="conv-label" title="Switch conversation">Global ▾</span>
+      <span class="pill clickable" id="ws-btn" title="Open my workspace">🗂 Files</span>
+      <span class="pill clickable" id="admin-btn" title="Admin panel" style="display:none">⚙ Admin</span>
+      <span class="pill clickable" id="me-btn" title="My profile"><span id="me-name">…</span><span class="pill" id="me-role" style="margin-left:4px"></span></span>
     </div>
   </header>
 
-  <main id="log">
-    <div class="empty" id="empty-state">Loading…</div>
-  </main>
-
-  <div class="typing" id="typing-ind">
-    <span class="blob"></span><span class="blob"></span><span class="blob"></span>
-    <span id="typing-text">Captain typing…</span>
-    <span class="action" id="current-action"></span>
-  </div>
-
-  <footer>
-    <div class="pending" id="pending"></div>
-    <div class="composer">
-      <label class="attach" title="Attach (or paste / drag-drop)" for="file-input">📎</label>
-      <input type="file" id="file-input" multiple style="display:none">
-      <textarea id="input" placeholder="Message Captain… (Enter to send, Shift+Enter newline)"></textarea>
-      <button class="send" id="send-btn">Send</button>
+  <div class="body">
+    <div class="sidebar" id="sidebar">
+      <div class="sb-section">
+        <h3>Conversations</h3>
+        <div class="sb-list" id="conv-list"></div>
+        <button class="sb-btn" id="new-dm-btn" style="margin-top:8px">+ New DM</button>
+      </div>
     </div>
-  </footer>
+
+    <div style="display:flex;flex-direction:column;flex:1 1 auto;min-width:0">
+      <main id="log">
+        <div class="empty" id="empty-state">Loading…</div>
+      </main>
+
+      <div class="typing" id="typing-ind">
+        <span class="blob"></span><span class="blob"></span><span class="blob"></span>
+        <span id="typing-text">Captain typing…</span>
+        <span class="action" id="current-action"></span>
+      </div>
+
+      <footer>
+        <div class="pending" id="pending"></div>
+        <div class="composer">
+          <label class="attach" title="Attach (or paste / drag-drop)" for="file-input">📎</label>
+          <input type="file" id="file-input" multiple style="display:none">
+          <textarea id="input" placeholder="Message Captain… (Enter to send, Shift+Enter newline)"></textarea>
+          <button class="send" id="send-btn">Send</button>
+        </div>
+      </footer>
+    </div>
+  </div>
 
   <div class="drop-overlay" id="drop-overlay">Drop files to attach</div>
 
-  <div class="gate" id="gate">
-    <div class="panel">
-      <h1>Captain Capy</h1>
-      <p>Fetching backend configuration…</p>
-      <div class="spinner"></div>
-      <div class="err" id="g-err"></div>
+  <!-- Login modal -->
+  <div class="login" id="login">
+    <div class="card">
+      <h1>Sign in</h1>
+      <input id="l-name" placeholder="username" autocomplete="username">
+      <input id="l-pw" type="password" placeholder="password" autocomplete="current-password">
+      <button id="l-go">Sign in</button>
+      <div class="err" id="l-err"></div>
+    </div>
+  </div>
+
+  <!-- Admin modal -->
+  <div class="modal" id="admin-modal">
+    <div class="card">
+      <span class="close" id="admin-close">×</span>
+      <h2>Admin · Users</h2>
+      <div id="users-list"></div>
+      <div class="add">
+        <input id="new-name" placeholder="username">
+        <input id="new-pw" type="password" placeholder="password (>=6)">
+        <select id="new-role">
+          <option value="user">user</option>
+          <option value="admin">admin</option>
+        </select>
+        <button class="btn primary" id="new-add">Add</button>
+      </div>
+      <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+        <button class="btn danger" id="clear-chat">Clear current conversation</button>
+      </div>
+      <div class="err" id="admin-err"></div>
+    </div>
+  </div>
+
+  <!-- Profile modal -->
+  <div class="modal" id="me-modal">
+    <div class="card">
+      <span class="close" id="me-close">×</span>
+      <h2>My profile</h2>
+      <div id="me-summary"></div>
+      <div class="add" style="grid-template-columns:1fr 1fr auto">
+        <input id="old-pw" type="password" placeholder="old password">
+        <input id="new-pw2" type="password" placeholder="new password (>=6)">
+        <button class="btn primary" id="change-pw">Change password</button>
+      </div>
+      <div style="margin-top:14px">
+        <button class="btn danger" id="logout-btn">Logout</button>
+      </div>
+      <div class="err" id="me-err"></div>
+    </div>
+  </div>
+
+  <!-- New DM modal -->
+  <div class="modal" id="dm-modal">
+    <div class="card">
+      <span class="close" id="dm-close">×</span>
+      <h2>Start direct message</h2>
+      <p style="color:var(--muted);font-size:13px">Pick a user to open a private conversation.</p>
+      <div id="dm-users" class="ws-list"></div>
+    </div>
+  </div>
+
+  <!-- Workspace modal -->
+  <div class="modal" id="ws-modal">
+    <div class="card">
+      <span class="close" id="ws-close">×</span>
+      <h2>My files <span style="color:var(--muted);font-weight:normal;font-size:12.5px">workspaces/<span id="ws-uid"></span>/</span></h2>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+        <input id="ws-path" placeholder="filename.py" style="flex:1">
+        <button class="btn" id="ws-open">Open</button>
+        <button class="btn primary" id="ws-save">Save</button>
+        <button class="btn danger" id="ws-del">Delete</button>
+      </div>
+      <div class="ws-list" id="ws-list"></div>
+      <div class="ws-edit"><textarea id="ws-content" placeholder="(empty file)"></textarea></div>
+      <div class="err" id="ws-err"></div>
     </div>
   </div>
 
 <script>
-// ─── CONFIG ──────────────────────────────────────────────────────────────────
-// Where to read live runtime.json from. Defaults to the same repo this Pages
-// site is served from (raw.githubusercontent.com via permalink to /main).
+// ─── Runtime + auth state ───────────────────────────────────────────────────
 const RUNTIME_OWNER = "maj941";
 const RUNTIME_REPO  = "chat";
 const RUNTIME_BRANCH = "main";
-const RUNTIME_PATH = "runtime.json";
-const RUNTIME_URL = `https://raw.githubusercontent.com/${RUNTIME_OWNER}/${RUNTIME_REPO}/${RUNTIME_BRANCH}/${RUNTIME_PATH}`;
-const RUNTIME_POLL_MS = 30000;  // re-check runtime.json every 30s
-
-// localStorage cache keys (fallback if runtime fetch fails)
-const LS_API = "captain_api";
-const LS_TOK = "captain_token";
-
-const log = document.getElementById('log');
-const typingInd = document.getElementById('typing-ind');
-const sendBtn = document.getElementById('send-btn');
-const inputEl = document.getElementById('input');
-const pendingBox = document.getElementById('pending');
-const fileInput = document.getElementById('file-input');
-const dropOverlay = document.getElementById('drop-overlay');
-const liveDot = document.getElementById('live-dot');
-const liveText = document.getElementById('live-text');
-const msgCountEl = document.getElementById('msg-count');
-const latencyEl = document.getElementById('latency');
-const emptyState = document.getElementById('empty-state');
-const gate = document.getElementById('gate');
-const gErr = document.getElementById('g-err');
-const resetLink = document.getElementById('reset-link');
-
+const RUNTIME_URL = `https://raw.githubusercontent.com/${RUNTIME_OWNER}/${RUNTIME_REPO}/${RUNTIME_BRANCH}/runtime.json`;
+const LS_API = "captain_api_v2";
+const LS_SESSION = "captain_session_v2";
+const LS_CONV = "captain_conv";
 let API_BASE = localStorage.getItem(LS_API) || '';
-let TOKEN    = localStorage.getItem(LS_TOK) || '';
+let SESSION = localStorage.getItem(LS_SESSION) || '';
+let ME = null;
+let CONV_ID = localStorage.getItem(LS_CONV) || 'c_global';
+let CONVS = [{id:'c_global', name:'Global', type:'global', members:[]}];
+let USERS = [];
 let lastTs = 0;
 let pendingFiles = [];
 let totalMsgs = 0;
 let pollTimer = null;
-let runtimeTimer = null;
 
-function escapeHTML(s){
-  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const $ = id => document.getElementById(id);
+
+function escapeHTML(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function formatSize(n){ if (!n) return ''; if (n < 1024) return n + ' B'; if (n < 1024*1024) return (n/1024).toFixed(1) + ' KB'; return (n/1024/1024).toFixed(2) + ' MB'; }
+
+async function fetchRuntime(){
+  try {
+    const r = await fetch(RUNTIME_URL + '?_=' + Date.now(), { cache: 'no-store' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return await r.json();
+  } catch (e) { return null; }
 }
 
-function formatSize(n){
-  if (!n) return '';
-  if (n < 1024) return n + ' B';
-  if (n < 1024*1024) return (n/1024).toFixed(1) + ' KB';
-  return (n/1024/1024).toFixed(2) + ' MB';
-}
-
-function absUrl(rel){
-  if (!API_BASE) return rel;
-  if (rel.startsWith('http')) return rel;
-  const sep = rel.includes('?') ? '&' : '?';
-  return API_BASE + rel + sep + 't=' + encodeURIComponent(TOKEN);
+async function bootstrap(){
+  let cfg = await fetchRuntime();
+  if (cfg && cfg.api) {
+    API_BASE = cfg.api.replace(/\/+$/,''); localStorage.setItem(LS_API, API_BASE);
+  }
+  if (!API_BASE) { showLoginError('Cannot reach runtime config.'); return; }
+  // Try /api/me with stored session
+  if (SESSION) {
+    const me = await api('/api/me');
+    if (me && me.user) {
+      ME = me.user;
+      hideLogin();
+      await refreshConvs();
+      await refreshUsers();
+      renderHeader();
+      poll();
+      return;
+    }
+  }
+  showLogin();
 }
 
 async function api(path, opts){
   opts = opts || {};
   opts.headers = opts.headers || {};
-  opts.headers['X-Auth-Token'] = TOKEN;
-  return fetch(API_BASE + path, opts);
-}
-
-function showGate(text, isError){
-  if (pollTimer) { clearTimeout(pollTimer); pollTimer = null; }
-  gate.style.display = 'grid';
-  const p = gate.querySelector('p');
-  if (p && text) p.textContent = text;
-  gErr.textContent = isError ? text : '';
-}
-function hideGate(){ gate.style.display = 'none'; }
-
-async function fetchRuntime(){
-  // Cache-busting to bypass raw.githubusercontent CDN
+  if (SESSION) opts.headers['X-Session-Token'] = SESSION;
+  if (!opts.headers['Content-Type'] && opts.body && typeof opts.body === 'string') opts.headers['Content-Type'] = 'application/json';
   try {
-    const r = await fetch(RUNTIME_URL + '?_=' + Date.now(), { cache: 'no-store' });
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    const j = await r.json();
-    return j;
-  } catch (e) {
-    return null;
+    const r = await fetch(API_BASE + path, opts);
+    if (r.status === 401) { logout(false); return null; }
+    if (!r.ok) return null;
+    return await r.json();
+  } catch (e) { return null; }
+}
+
+// ─── Login ──────────────────────────────────────────────────────────────────
+function showLogin(){ $('login').style.display = 'grid'; $('l-name').focus(); }
+function hideLogin(){ $('login').style.display = 'none'; }
+function showLoginError(msg){ $('l-err').textContent = msg; showLogin(); }
+$('l-go').onclick = async () => {
+  const r = await fetch(API_BASE + '/api/login', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name: $('l-name').value.trim(), password: $('l-pw').value})});
+  if (!r.ok) { $('l-err').textContent = 'Invalid credentials.'; return; }
+  const j = await r.json();
+  SESSION = j.session; localStorage.setItem(LS_SESSION, SESSION);
+  ME = j.user;
+  hideLogin();
+  refreshConvs(); refreshUsers(); renderHeader(); poll();
+};
+$('l-name').addEventListener('keydown', e => { if (e.key === 'Enter') $('l-pw').focus(); });
+$('l-pw').addEventListener('keydown', e => { if (e.key === 'Enter') $('l-go').click(); });
+
+async function logout(serverSide=true){
+  if (serverSide) await api('/api/logout', {method:'POST'});
+  SESSION = ''; localStorage.removeItem(LS_SESSION); ME = null;
+  if (pollTimer) clearTimeout(pollTimer);
+  showLogin();
+}
+
+// ─── Header / role badges ───────────────────────────────────────────────────
+function rolePill(role){ return `<span class="pill ${role}" style="margin-left:6px">${role}</span>`; }
+function renderHeader(){
+  if (!ME) return;
+  $('me-name').textContent = ME.name;
+  $('me-role').className = 'pill ' + ME.role;
+  $('me-role').textContent = ME.role;
+  $('admin-btn').style.display = (ME.role === 'admin') ? '' : 'none';
+  $('ws-uid').textContent = ME.id;
+}
+
+// ─── Conversations ──────────────────────────────────────────────────────────
+async function refreshConvs(){
+  const r = await api('/api/conversations');
+  CONVS = (r && r.conversations) || CONVS;
+  renderConvList();
+  if (!CONVS.find(c => c.id === CONV_ID)) { CONV_ID = 'c_global'; localStorage.setItem(LS_CONV, CONV_ID); }
+  renderConvLabel();
+}
+function renderConvList(){
+  const box = $('conv-list'); box.innerHTML = '';
+  CONVS.forEach(c => {
+    const it = document.createElement('div');
+    it.className = 'sb-item' + (c.id === CONV_ID ? ' active' : '');
+    const label = c.type === 'dm' ? dmLabel(c) : c.name;
+    it.innerHTML = `<span>${escapeHTML(label)}</span><span style="font-size:10.5px;color:var(--muted)">${c.type === 'dm' ? '🔒' : '#'}</span>`;
+    it.onclick = () => { CONV_ID = c.id; localStorage.setItem(LS_CONV, CONV_ID); lastTs = 0; totalMsgs = 0; document.querySelectorAll('.row').forEach(r => r.remove()); renderConvList(); renderConvLabel(); poll(); };
+    box.appendChild(it);
+  });
+}
+function dmLabel(c){
+  const other = c.members.find(id => id !== ME.id);
+  const u = USERS.find(u => u.id === other);
+  return u ? '@' + u.name : 'DM';
+}
+function renderConvLabel(){
+  const c = CONVS.find(x => x.id === CONV_ID);
+  $('conv-label').textContent = (c ? (c.type === 'dm' ? dmLabel(c) : c.name) : 'Global') + ' ▾';
+}
+$('conv-label').onclick = () => $('new-dm-btn').click();
+
+// ─── Users ──────────────────────────────────────────────────────────────────
+async function refreshUsers(){
+  if (ME && ME.role === 'admin') {
+    const r = await api('/api/users');
+    USERS = (r && r.users) || [];
+  } else {
+    // Non-admin: derive users from message authors
+    USERS = [];
   }
 }
 
-async function bootstrapRuntime(){
-  const cfg = await fetchRuntime();
-  if (cfg && cfg.api && cfg.token) {
-    setRuntime(cfg.api, cfg.token);
-    hideGate();
-    if (emptyState && totalMsgs === 0) emptyState.textContent = 'No messages yet. Type below or drag a file in.';
-    poll();
-    return true;
-  }
-  // Fallback: localStorage
-  if (API_BASE && TOKEN) {
-    hideGate();
-    poll();
-    return true;
-  }
-  showGate('Cannot reach runtime config and no local cache available.', true);
-  return false;
-}
-
-function setRuntime(api, tok){
-  let changed = false;
-  if (api && api !== API_BASE) { API_BASE = api.replace(/\/+$/,''); localStorage.setItem(LS_API, API_BASE); changed = true; }
-  if (tok && tok !== TOKEN)    { TOKEN    = tok; localStorage.setItem(LS_TOK, tok); changed = true; }
-  if (changed) {
-    // Reset state so we re-render messages with new origin
-    lastTs = 0; totalMsgs = 0;
-    log.innerHTML = '<div class="empty" id="empty-state">Loaded from runtime config.</div>';
-  }
-}
-
-async function checkRuntimeUpdate(){
-  const cfg = await fetchRuntime();
-  if (cfg && cfg.api && cfg.token) {
-    if (cfg.api !== API_BASE || cfg.token !== TOKEN) {
-      setRuntime(cfg.api, cfg.token);
-      if (pollTimer) { clearTimeout(pollTimer); pollTimer = null; }
-      poll();
-    }
-  }
-}
-
+// ─── Messages ───────────────────────────────────────────────────────────────
 function renderMessage(m){
-  const empty = document.getElementById('empty-state');
-  if (empty) empty.remove();
+  const empty = $('empty-state'); if (empty) empty.remove();
+  const isSelf = ME && (m.user_id === ME.id);
   const row = document.createElement('div');
-  row.className = 'row ' + (m.role === 'user' ? 'user' : 'assistant');
+  row.className = 'row ' + (isSelf ? 'self' : 'other');
   const bub = document.createElement('div');
-  bub.className = 'bubble';
+  bub.className = 'bubble' + (m.user_role === 'captain' ? ' captain' : '');
   const who = document.createElement('div');
   who.className = 'who';
-  who.textContent = m.role === 'user' ? 'You' : 'Captain';
+  who.innerHTML = escapeHTML(m.username || 'unknown') + rolePill(m.user_role || 'user');
   bub.appendChild(who);
   if (m.text) {
     const txt = document.createElement('div');
@@ -269,163 +406,237 @@ function renderMessage(m){
     bub.appendChild(txt);
   }
   if (m.files && m.files.length) {
-    const fbox = document.createElement('div');
-    fbox.className = 'files';
     m.files.forEach(f => {
       if (f.type && f.type.startsWith('image/')) {
         const img = document.createElement('img');
         img.className = 'img-prev';
         img.src = absUrl(f.url);
-        img.alt = f.name;
         bub.appendChild(img);
       } else {
         const a = document.createElement('a');
         a.className = 'file-card';
         a.href = absUrl(f.url);
         a.target = '_blank';
-        a.innerHTML = '<span class="icon">📄</span><span>'+escapeHTML(f.name)+'</span><span style="opacity:.6;font-size:11px">'+formatSize(f.size)+'</span>';
-        fbox.appendChild(a);
+        a.innerHTML = '<span>📄</span><span>'+escapeHTML(f.name)+'</span><span style="opacity:.6;font-size:11px">'+formatSize(f.size)+'</span>';
+        bub.appendChild(a);
       }
     });
-    if (fbox.children.length) bub.appendChild(fbox);
   }
   const ts = document.createElement('div');
   ts.className = 'ts';
-  const d = new Date(m.ts * 1000);
-  ts.textContent = d.toLocaleTimeString();
+  ts.textContent = new Date(m.ts * 1000).toLocaleTimeString();
   bub.appendChild(ts);
+  if (ME && (ME.role === 'admin' || m.user_id === ME.id)) {
+    const x = document.createElement('span');
+    x.className = 'delete';
+    x.textContent = '✕';
+    x.title = 'Delete this message';
+    x.onclick = async () => {
+      if (!confirm('Delete this message?')) return;
+      await api('/api/messages/' + m.id, {method:'DELETE'});
+      row.remove();
+    };
+    bub.appendChild(x);
+  }
   row.appendChild(bub);
-  log.appendChild(row);
-  log.scrollTop = log.scrollHeight;
+  $('log').appendChild(row);
+  $('log').scrollTop = $('log').scrollHeight;
   totalMsgs += 1;
-  msgCountEl.textContent = totalMsgs + ' messages';
 }
 
+function absUrl(rel){ if (rel.startsWith('http')) return rel; return API_BASE + rel + (rel.includes('?')?'&':'?') + 's=' + encodeURIComponent(SESSION); }
+
 async function poll(){
-  if (!API_BASE || !TOKEN) { showGate('Waiting for runtime config…', false); return; }
-  const t0 = performance.now();
+  if (!API_BASE || !SESSION) return;
   try {
-    const r = await api('/api/messages?since=' + lastTs);
-    if (r.status === 401) {
-      // Token rotated; re-fetch runtime
-      await checkRuntimeUpdate();
-      pollTimer = setTimeout(poll, 1500);
-      return;
-    }
+    const r = await fetch(API_BASE + '/api/messages?since=' + lastTs + '&conv_id=' + encodeURIComponent(CONV_ID), {headers: {'X-Session-Token': SESSION}});
+    if (r.status === 401) { logout(false); return; }
     const data = await r.json();
-    const dt = Math.round(performance.now() - t0);
-    latencyEl.textContent = dt + 'ms';
-    liveDot.classList.add('live'); liveDot.classList.remove('typing');
-    liveText.textContent = 'live';
-    if (data.messages && data.messages.length){
+    $('live-dot').classList.add('live'); $('live-dot').classList.remove('typing');
+    $('live-text').textContent = 'live';
+    if (data.messages && data.messages.length) {
       data.messages.forEach(m => { renderMessage(m); if (m.ts > lastTs) lastTs = m.ts; });
     }
     if (data.agent_typing) {
-      typingInd.classList.add('on');
-      liveDot.classList.remove('live'); liveDot.classList.add('typing');
-      liveText.textContent = 'typing';
+      $('typing-ind').classList.add('on');
+      $('live-dot').classList.remove('live'); $('live-dot').classList.add('typing');
+      $('live-text').textContent = 'typing';
+      $('typing-text').textContent = 'Captain typing…';
     } else {
-      typingInd.classList.remove('on');
+      $('typing-ind').classList.remove('on');
     }
-    const actionEl = document.getElementById('current-action');
-    if (actionEl) actionEl.textContent = data.current_action ? '— ' + data.current_action : '';
+    $('current-action').textContent = data.current_action ? '— ' + data.current_action : '';
     if (data.current_action && !data.agent_typing) {
-      // show indicator even without typing flag
-      typingInd.classList.add('on');
-      document.getElementById('typing-text').textContent = '';
-    } else if (data.agent_typing) {
-      document.getElementById('typing-text').textContent = 'Captain typing…';
+      $('typing-ind').classList.add('on');
+      $('typing-text').textContent = '';
     }
   } catch (e) {
-    liveDot.classList.remove('live'); liveDot.classList.remove('typing');
-    liveText.textContent = 'reconnecting…';
-    // Try fetching runtime to see if backend URL changed
-    await checkRuntimeUpdate();
-  } finally {
-    pollTimer = setTimeout(poll, 1500);
+    $('live-dot').classList.remove('live'); $('live-dot').classList.remove('typing');
+    $('live-text').textContent = 'reconnecting…';
   }
+  pollTimer = setTimeout(poll, 1500);
 }
 
+// ─── Compose ────────────────────────────────────────────────────────────────
+async function send(){
+  const text = $('input').value.trim();
+  if (!text && !pendingFiles.length) return;
+  $('send-btn').disabled = true;
+  await api('/api/messages', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({text, files: pendingFiles, conv_id: CONV_ID})});
+  $('input').value = ''; pendingFiles = []; renderPending();
+  $('send-btn').disabled = false; $('input').focus();
+}
+$('send-btn').onclick = send;
+$('input').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } });
+
 function renderPending(){
-  pendingBox.innerHTML = '';
+  const box = $('pending'); box.innerHTML = '';
   pendingFiles.forEach((f, i) => {
     const chip = document.createElement('div');
     chip.className = 'chip';
     chip.innerHTML = '<span>'+escapeHTML(f.name)+'</span><span style="opacity:.6;font-size:11px">'+formatSize(f.size)+'</span><span class="x" data-i="'+i+'">×</span>';
-    pendingBox.appendChild(chip);
+    box.appendChild(chip);
   });
-  pendingBox.querySelectorAll('.x').forEach(x => x.addEventListener('click', () => {
-    pendingFiles.splice(+x.dataset.i, 1); renderPending();
-  }));
+  box.querySelectorAll('.x').forEach(x => x.onclick = () => { pendingFiles.splice(+x.dataset.i, 1); renderPending(); });
 }
 
 async function uploadFile(file){
-  const fd = new FormData();
-  fd.append('file', file);
-  const r = await api('/api/upload', { method:'POST', body: fd });
+  const fd = new FormData(); fd.append('file', file);
+  const r = await fetch(API_BASE + '/api/upload', {method:'POST', body: fd, headers: {'X-Session-Token': SESSION}});
+  if (!r.ok) return;
   const j = await r.json();
-  if (j && j.url) {
-    pendingFiles.push(j);
-    renderPending();
-  }
+  if (j && j.url) { pendingFiles.push(j); renderPending(); }
 }
-
-async function send(){
-  const text = inputEl.value.trim();
-  if (!text && !pendingFiles.length) return;
-  sendBtn.disabled = true;
-  try {
-    await api('/api/messages', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ text, files: pendingFiles, role: 'user' })
-    });
-    inputEl.value = '';
-    pendingFiles = [];
-    renderPending();
-  } catch (e) {}
-  sendBtn.disabled = false;
-  inputEl.focus();
-}
-
-sendBtn.addEventListener('click', send);
-inputEl.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
-});
-fileInput.addEventListener('change', async e => {
-  for (const f of e.target.files) await uploadFile(f);
-  fileInput.value = '';
-});
-window.addEventListener('paste', async e => {
-  if (!e.clipboardData) return;
-  for (const item of e.clipboardData.items) {
-    if (item.kind === 'file') {
-      const f = item.getAsFile();
-      if (f) await uploadFile(f);
-    }
-  }
-});
+$('file-input').onchange = async e => { for (const f of e.target.files) await uploadFile(f); e.target.value = ''; };
+window.addEventListener('paste', async e => { if (!e.clipboardData) return; for (const item of e.clipboardData.items) { if (item.kind === 'file') { const f = item.getAsFile(); if (f) await uploadFile(f); } } });
 let dragCount = 0;
-window.addEventListener('dragenter', e => { e.preventDefault(); dragCount++; dropOverlay.classList.add('on'); });
-window.addEventListener('dragleave', e => { e.preventDefault(); dragCount--; if (dragCount<=0) { dragCount=0; dropOverlay.classList.remove('on'); } });
+window.addEventListener('dragenter', e => { e.preventDefault(); dragCount++; $('drop-overlay').classList.add('on'); });
+window.addEventListener('dragleave', e => { e.preventDefault(); dragCount--; if (dragCount <= 0) { dragCount=0; $('drop-overlay').classList.remove('on'); } });
 window.addEventListener('dragover', e => { e.preventDefault(); });
-window.addEventListener('drop', async e => {
-  e.preventDefault(); dragCount = 0; dropOverlay.classList.remove('on');
-  if (e.dataTransfer && e.dataTransfer.files) {
-    for (const f of e.dataTransfer.files) await uploadFile(f);
-  }
-});
+window.addEventListener('drop', async e => { e.preventDefault(); dragCount=0; $('drop-overlay').classList.remove('on'); if (e.dataTransfer && e.dataTransfer.files) for (const f of e.dataTransfer.files) await uploadFile(f); });
 
-resetLink.addEventListener('click', async e => {
-  e.preventDefault();
-  showGate('Re-fetching runtime…', false);
-  await bootstrapRuntime();
-});
+// ─── Admin modal ────────────────────────────────────────────────────────────
+$('admin-btn').onclick = async () => {
+  const r = await api('/api/users');
+  USERS = (r && r.users) || [];
+  renderUsersList();
+  $('admin-modal').classList.add('on');
+};
+$('admin-close').onclick = () => $('admin-modal').classList.remove('on');
+function renderUsersList(){
+  const box = $('users-list'); box.innerHTML = '';
+  USERS.forEach(u => {
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.innerHTML = `<div><b>${escapeHTML(u.name)}</b> ${rolePill(u.role)}</div>`;
+    const acts = document.createElement('div'); acts.style.display = 'flex'; acts.style.gap = '6px';
+    if (u.role !== 'captain') {
+      ['user','admin','banned'].forEach(r => {
+        if (r === u.role) return;
+        const b = document.createElement('button'); b.className = 'btn'; b.textContent = '→ ' + r;
+        b.onclick = async () => { await api('/api/users/'+u.id, {method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({role: r})}); $('admin-btn').click(); };
+        acts.appendChild(b);
+      });
+      const kick = document.createElement('button'); kick.className = 'btn'; kick.textContent = 'kick';
+      kick.onclick = async () => { await api('/api/users/'+u.id+'/kick', {method:'POST'}); };
+      acts.appendChild(kick);
+      const del = document.createElement('button'); del.className = 'btn danger'; del.textContent = 'delete';
+      del.onclick = async () => { if (!confirm('Delete '+u.name+'?')) return; await api('/api/users/'+u.id, {method:'DELETE'}); $('admin-btn').click(); };
+      acts.appendChild(del);
+    }
+    row.appendChild(acts);
+    box.appendChild(row);
+  });
+}
+$('new-add').onclick = async () => {
+  const r = await api('/api/users', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name: $('new-name').value.trim(), password: $('new-pw').value, role: $('new-role').value})});
+  if (r && r.user) { $('new-name').value = ''; $('new-pw').value = ''; $('admin-btn').click(); }
+  else { $('admin-err').textContent = 'Failed to add.'; }
+};
+$('clear-chat').onclick = async () => { if (!confirm('Clear ALL messages?')) return; await api('/api/clear', {method:'POST'}); $('log').innerHTML = ''; totalMsgs = 0; lastTs = 0; $('admin-modal').classList.remove('on'); };
+
+// ─── Profile modal ──────────────────────────────────────────────────────────
+$('me-btn').onclick = () => {
+  $('me-summary').innerHTML = `<div><b>${escapeHTML(ME.name)}</b> ${rolePill(ME.role)}</div><div style="color:var(--muted);font-size:12.5px;margin-top:6px">id: ${ME.id}</div>`;
+  $('me-modal').classList.add('on');
+};
+$('me-close').onclick = () => $('me-modal').classList.remove('on');
+$('change-pw').onclick = async () => {
+  const r = await api('/api/me/password', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({old: $('old-pw').value, new: $('new-pw2').value})});
+  if (r && r.ok) { $('me-err').textContent = 'Password changed.'; $('me-err').style.color = 'var(--ok)'; $('old-pw').value=''; $('new-pw2').value=''; }
+  else { $('me-err').textContent = 'Failed.'; $('me-err').style.color = 'var(--danger)'; }
+};
+$('logout-btn').onclick = () => logout(true);
+
+// ─── DM modal ───────────────────────────────────────────────────────────────
+$('new-dm-btn').onclick = async () => {
+  // For non-admin users, we still need a list of who's available — fetch via admin-only endpoint
+  // If non-admin, fall back to checking message authors for names
+  let candidates = USERS.length ? USERS : [];
+  if (!candidates.length && ME.role !== 'admin') {
+    // peek messages to learn other users
+    const r = await api('/api/messages?since=0&conv_id=c_global');
+    const m = (r && r.messages) || [];
+    const seen = {};
+    m.forEach(x => { if (x.user_id && x.user_id !== ME.id && !seen[x.user_id]) seen[x.user_id] = {id: x.user_id, name: x.username, role: x.user_role}; });
+    candidates = Object.values(seen);
+  }
+  candidates = candidates.filter(u => u.id !== ME.id && u.role !== 'captain');
+  const box = $('dm-users'); box.innerHTML = '';
+  if (!candidates.length) { box.innerHTML = '<div style="color:var(--muted)">No other users yet.</div>'; }
+  candidates.forEach(u => {
+    const it = document.createElement('div'); it.className = 'it';
+    it.innerHTML = `<span>${escapeHTML(u.name)} ${rolePill(u.role || 'user')}</span>`;
+    it.onclick = async () => {
+      const r = await api('/api/conversations', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({with: u.id})});
+      if (r && r.conversation) {
+        CONV_ID = r.conversation.id; localStorage.setItem(LS_CONV, CONV_ID);
+        await refreshConvs();
+        lastTs = 0; totalMsgs = 0; $('log').innerHTML = '';
+        $('dm-modal').classList.remove('on');
+      }
+    };
+    box.appendChild(it);
+  });
+  $('dm-modal').classList.add('on');
+};
+$('dm-close').onclick = () => $('dm-modal').classList.remove('on');
+
+// ─── Workspace modal ────────────────────────────────────────────────────────
+$('ws-btn').onclick = () => { $('ws-modal').classList.add('on'); wsRefresh(); };
+$('ws-close').onclick = () => $('ws-modal').classList.remove('on');
+async function wsRefresh(){
+  const r = await api('/api/workspace/list?path=');
+  const box = $('ws-list'); box.innerHTML = '';
+  ((r && r.entries) || []).forEach(e => {
+    const it = document.createElement('div'); it.className = 'it';
+    it.innerHTML = `<span>${e.type === 'dir' ? '📁' : '📄'} ${escapeHTML(e.name)}</span><span style="color:var(--muted);font-size:11px">${e.size ? formatSize(e.size) : ''}</span>`;
+    it.onclick = () => { $('ws-path').value = e.name; $('ws-open').click(); };
+    box.appendChild(it);
+  });
+}
+$('ws-open').onclick = async () => {
+  const p = $('ws-path').value.trim(); if (!p) return;
+  const r = await api('/api/workspace/read?path=' + encodeURIComponent(p));
+  if (r && !r.error) { $('ws-content').value = r.binary ? '(binary content, base64 hidden)' : r.content; $('ws-err').textContent = ''; }
+  else { $('ws-err').textContent = (r && r.error) || 'Failed'; }
+};
+$('ws-save').onclick = async () => {
+  const p = $('ws-path').value.trim(); if (!p) return;
+  const r = await api('/api/workspace/write', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({path: p, content: $('ws-content').value})});
+  if (r && r.ok) { $('ws-err').textContent = 'Saved.'; $('ws-err').style.color = 'var(--ok)'; wsRefresh(); }
+  else { $('ws-err').textContent = 'Failed.'; $('ws-err').style.color = 'var(--danger)'; }
+};
+$('ws-del').onclick = async () => {
+  const p = $('ws-path').value.trim(); if (!p) return;
+  if (!confirm('Delete '+p+'?')) return;
+  await api('/api/workspace/delete', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({path: p})});
+  $('ws-content').value = ''; $('ws-path').value = ''; wsRefresh();
+};
 
 // Boot
-bootstrapRuntime();
-runtimeTimer = setInterval(checkRuntimeUpdate, RUNTIME_POLL_MS);
-inputEl.focus();
+bootstrap();
+setInterval(async () => { const cfg = await fetchRuntime(); if (cfg && cfg.api && cfg.api.replace(/\/+$/,'') !== API_BASE) { API_BASE = cfg.api.replace(/\/+$/,''); localStorage.setItem(LS_API, API_BASE); if (pollTimer) clearTimeout(pollTimer); poll(); } }, 30000);
 </script>
 </body>
 </html>
