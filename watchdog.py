@@ -23,8 +23,12 @@ TUNNEL_LOG = f"{BASE}/tunnel.log"
 SERVER_LOG = f"{BASE}/server.log"
 WATCHDOG_LOG = f"{BASE}/watchdog.log"
 TOKEN_FILE = f"{BASE}/auth_token.txt"
-PAGES_URL_FILE = f"{BASE}/pages_url.txt"  # optional: full Pages URL like https://maj941.github.io/chat/
+PAGES_URL_FILE = f"{BASE}/pages_url.txt"
+PAT_FILE = f"{BASE}/github_pat.txt"
+RUNTIME_REPO_FILE = f"{BASE}/runtime_repo.txt"  # contents: owner/repo (e.g. maj941/chat)
 URL_RE = re.compile(r"https://[a-z0-9-]+\.trycloudflare\.com")
+
+import base64 as _b64
 
 
 def _load_token():
@@ -36,7 +40,6 @@ def _load_token():
 
 
 def _load_pages_url():
-    # Env var has priority, then file
     p = os.environ.get("PAGES_URL", "").strip()
     if p:
         return p
@@ -45,6 +48,84 @@ def _load_pages_url():
             return f.read().strip()
     except Exception:
         return ""
+
+
+def _load_pat():
+    p = os.environ.get("GITHUB_PAT", "").strip()
+    if p:
+        return p
+    try:
+        with open(PAT_FILE) as f:
+            return f.read().strip()
+    except Exception:
+        return ""
+
+
+def _load_runtime_repo():
+    p = os.environ.get("RUNTIME_REPO", "").strip()
+    if p:
+        return p
+    try:
+        with open(RUNTIME_REPO_FILE) as f:
+            return f.read().strip()
+    except Exception:
+        return ""
+
+
+def push_runtime_to_repo(api_url, auth_token):
+    """PUT runtime.json into the configured repo via GitHub Contents API.
+
+    Returns (ok: bool, info: str).
+    Best-effort: needs both PAT and RUNTIME_REPO to be configured.
+    """
+    pat = _load_pat()
+    repo = _load_runtime_repo()
+    if not pat or not repo:
+        return False, "no PAT or runtime_repo"
+    payload = {"api": api_url, "token": auth_token, "ts": int(time.time())}
+    body = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
+    b64 = _b64.b64encode(body.encode("utf-8")).decode("ascii")
+    headers = {
+        "Authorization": f"Bearer {pat}",
+        "Accept": "application/vnd.github+json",
+        "User-Agent": "captain-chat-watchdog",
+        "Content-Type": "application/json",
+    }
+    api = f"https://api.github.com/repos/{repo}/contents/runtime.json"
+    # 1) get current sha if file exists
+    sha = None
+    try:
+        r = urllib.request.Request(api, method="GET", headers=headers)
+        with urllib.request.urlopen(r, timeout=10) as resp:
+            cur = json.loads(resp.read().decode("utf-8"))
+            sha = cur.get("sha")
+    except urllib.error.HTTPError as e:
+        if e.code != 404:
+            return False, f"get sha {e.code}: {e.read().decode('utf-8','replace')[:200]}"
+    except Exception as e:
+        return False, f"get sha err: {e}"
+    # 2) put
+    put_body = {
+        "message": f"watchdog: update runtime backend URL ({time.strftime('%Y-%m-%d %H:%M:%S')})",
+        "content": b64,
+        "branch": "main",
+    }
+    if sha:
+        put_body["sha"] = sha
+    try:
+        r = urllib.request.Request(
+            api,
+            data=json.dumps(put_body).encode("utf-8"),
+            method="PUT",
+            headers=headers,
+        )
+        with urllib.request.urlopen(r, timeout=15) as resp:
+            j = json.loads(resp.read().decode("utf-8"))
+            return True, j.get("commit", {}).get("sha", "")
+    except urllib.error.HTTPError as e:
+        return False, f"put {e.code}: {e.read().decode('utf-8','replace')[:200]}"
+    except Exception as e:
+        return False, f"put err: {e}"
 
 
 def log(msg):
@@ -221,7 +302,6 @@ def main():
             token = _load_token()
             pages = _load_pages_url()
             if pages:
-                # Format via Pages gateway: <pages>/?api=<url>&t=<token>
                 pages_clean = pages.rstrip("/") + "/"
                 display_url = f"{pages_clean}?api={url}&t={token}" if token else f"{pages_clean}?api={url}"
             else:
@@ -230,6 +310,12 @@ def main():
                 log(f"URL changed: {last_known_url!r} -> {display_url!r}")
                 had_prev = bool(last_known_url)
                 write_url(display_url)
+                # Push runtime.json to repo (best-effort)
+                ok, info = push_runtime_to_repo(url, token)
+                if ok:
+                    log(f"runtime.json pushed: {info}")
+                else:
+                    log(f"runtime.json push skipped or failed: {info}")
                 if had_prev:
                     post_chat(f"⚠️ Туннель пересоздан. Новый адрес: {display_url}")
                 last_known_url = display_url

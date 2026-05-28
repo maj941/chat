@@ -31,6 +31,23 @@ elif [ ! -s "$BASE/pages_url.txt" ]; then
   echo "https://maj941.github.io/chat/" > "$BASE/pages_url.txt"
 fi
 
+# Runtime repo (where watchdog PUTs runtime.json). Required for Pages auto-discovery.
+if [ -n "$RUNTIME_REPO" ]; then
+  echo "$RUNTIME_REPO" > "$BASE/runtime_repo.txt"
+elif [ ! -s "$BASE/runtime_repo.txt" ]; then
+  echo "maj941/chat" > "$BASE/runtime_repo.txt"
+fi
+
+# GitHub PAT for runtime.json push. If env var is set, persist; otherwise expect
+# the file to already exist (chmod 600 recommended).
+if [ -n "$GITHUB_PAT" ]; then
+  echo "$GITHUB_PAT" > "$BASE/github_pat.txt"
+  chmod 600 "$BASE/github_pat.txt"
+elif [ ! -s "$BASE/github_pat.txt" ]; then
+  echo "WARNING: $BASE/github_pat.txt is missing — runtime.json auto-publish disabled."
+  echo "         Set GITHUB_PAT env var or write the PAT to that file (chmod 600)."
+fi
+
 # cloudflared
 if [ ! -x /tmp/cloudflared ]; then
   curl -fsSL -o /tmp/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
