@@ -54,6 +54,7 @@
   .typing .blob:nth-child(2) { animation-delay: 0.15s; }
   .typing .blob:nth-child(3) { animation-delay: 0.3s; }
   @keyframes blob { 0%,60%,100% { transform: translateY(0); opacity: 0.5;} 30% { transform: translateY(-4px); opacity: 1;} }
+  .typing .action { color: var(--accent-2); font-style: italic; max-width: 60vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   footer { flex: 0 0 auto; border-top: 1px solid var(--border); padding: 10px 14px 14px; background: var(--panel); }
   .composer { display: flex; align-items: flex-end; gap: 8px; }
   .attach { width: 38px; height: 38px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--border); color: var(--muted); display: grid; place-items: center; cursor: pointer; font-size: 17px; user-select: none; }
@@ -100,7 +101,8 @@
 
   <div class="typing" id="typing-ind">
     <span class="blob"></span><span class="blob"></span><span class="blob"></span>
-    <span>Captain typing…</span>
+    <span id="typing-text">Captain typing…</span>
+    <span class="action" id="current-action"></span>
   </div>
 
   <footer>
@@ -324,6 +326,15 @@ async function poll(){
       liveText.textContent = 'typing';
     } else {
       typingInd.classList.remove('on');
+    }
+    const actionEl = document.getElementById('current-action');
+    if (actionEl) actionEl.textContent = data.current_action ? '— ' + data.current_action : '';
+    if (data.current_action && !data.agent_typing) {
+      // show indicator even without typing flag
+      typingInd.classList.add('on');
+      document.getElementById('typing-text').textContent = '';
+    } else if (data.agent_typing) {
+      document.getElementById('typing-text').textContent = 'Captain typing…';
     }
   } catch (e) {
     liveDot.classList.remove('live'); liveDot.classList.remove('typing');
