@@ -69,17 +69,14 @@
   .drop-overlay.on { display: flex; }
   .empty { color: var(--muted); text-align: center; padding: 40px 12px; font-size: 13px; }
   code, pre { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 13px; }
-  /* Gate overlay */
   .gate { position: fixed; inset: 0; background: var(--bg); display: grid; place-items: center; z-index: 2000; }
-  .gate .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 22px 26px; width: min(420px, 92%); }
-  .gate h1 { font-size: 16px; margin: 0 0 8px; letter-spacing: 0.3px; }
+  .gate .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 22px 26px; width: min(420px, 92%); text-align: center; }
+  .gate h1 { font-size: 16px; margin: 0 0 8px; }
   .gate p { color: var(--muted); margin: 0 0 14px; font-size: 13px; }
-  .gate label { display: block; font-size: 12px; color: var(--muted); margin: 10px 0 4px; }
-  .gate input { width: 100%; padding: 10px; border-radius: 8px; background: var(--panel-2); color: var(--text); border: 1px solid var(--border); font: inherit; outline: none; }
-  .gate input:focus { border-color: var(--accent); }
-  .gate button { margin-top: 14px; padding: 10px 14px; border: 0; border-radius: 8px; background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: white; font-weight: 600; cursor: pointer; width: 100%; font-size: 14px; }
-  .gate .err { color: var(--danger); margin-top: 8px; font-size: 12.5px; min-height: 16px; }
-  .reset { color: var(--muted); font-size: 11.5px; text-decoration: none; padding: 4px 8px; border-radius: 6px; }
+  .spinner { width: 32px; height: 32px; border: 3px solid var(--panel-2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 12px auto; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .err { color: var(--danger); font-size: 12.5px; margin-top: 8px; }
+  .reset { color: var(--muted); font-size: 11.5px; text-decoration: none; padding: 4px 8px; border-radius: 6px; cursor: pointer; }
   .reset:hover { color: var(--text); background: var(--panel-2); }
 </style>
 </head>
@@ -88,17 +85,17 @@
     <div class="brand">
       <div class="logo">C</div>
       <div>Captain Capy</div>
-      <span class="pill"><span class="dot live" id="live-dot"></span><span id="live-text">live</span></span>
+      <span class="pill"><span class="dot live" id="live-dot"></span><span id="live-text">connecting…</span></span>
     </div>
     <div class="meta">
       <span class="pill" id="msg-count">0 messages</span>
       <span class="pill" id="latency">—</span>
-      <a class="reset" href="#" id="reset-link" title="Forget stored backend / token">⎋ reset</a>
+      <a class="reset" href="#" id="reset-link" title="Force re-fetch runtime config">↻ reload</a>
     </div>
   </header>
 
   <main id="log">
-    <div class="empty" id="empty-state">No messages yet. Type below or drag a file in.</div>
+    <div class="empty" id="empty-state">Loading…</div>
   </main>
 
   <div class="typing" id="typing-ind">
@@ -118,49 +115,29 @@
 
   <div class="drop-overlay" id="drop-overlay">Drop files to attach</div>
 
-  <!-- Gate overlay (shown if api+token are missing or invalid) -->
-  <div class="gate" id="gate" style="display:none">
+  <div class="gate" id="gate">
     <div class="panel">
-      <h1>Connect to backend</h1>
-      <p>Enter the backend URL (e.g. <code>https://something.trycloudflare.com</code>) and the access token. They are stored locally on this device.</p>
-      <label for="g-api">Backend URL</label>
-      <input id="g-api" autocomplete="off" spellcheck="false" placeholder="https://...trycloudflare.com">
-      <label for="g-tok">Token</label>
-      <input id="g-tok" autocomplete="off" type="password" placeholder="bearer token">
-      <button id="g-go">Connect</button>
+      <h1>Captain Capy</h1>
+      <p>Fetching backend configuration…</p>
+      <div class="spinner"></div>
       <div class="err" id="g-err"></div>
     </div>
   </div>
 
 <script>
-// ─── config ─────────────────────────────────────────────────────────────────
+// ─── CONFIG ──────────────────────────────────────────────────────────────────
+// Where to read live runtime.json from. Defaults to the same repo this Pages
+// site is served from (raw.githubusercontent.com via permalink to /main).
+const RUNTIME_OWNER = "maj941";
+const RUNTIME_REPO  = "chat";
+const RUNTIME_BRANCH = "main";
+const RUNTIME_PATH = "runtime.json";
+const RUNTIME_URL = `https://raw.githubusercontent.com/${RUNTIME_OWNER}/${RUNTIME_REPO}/${RUNTIME_BRANCH}/${RUNTIME_PATH}`;
+const RUNTIME_POLL_MS = 30000;  // re-check runtime.json every 30s
+
+// localStorage cache keys (fallback if runtime fetch fails)
 const LS_API = "captain_api";
 const LS_TOK = "captain_token";
-
-function readQuery(){
-  const u = new URL(location.href);
-  return { api: u.searchParams.get('api'), t: u.searchParams.get('t') };
-}
-function cleanQuery(){
-  const u = new URL(location.href);
-  if (u.searchParams.has('api') || u.searchParams.has('t')) {
-    u.searchParams.delete('api'); u.searchParams.delete('t');
-    history.replaceState({}, '', u.toString());
-  }
-}
-function getApi(){ return localStorage.getItem(LS_API) || ''; }
-function getTok(){ return localStorage.getItem(LS_TOK) || ''; }
-function setApi(v){ localStorage.setItem(LS_API, v.replace(/\/+$/,'')); }
-function setTok(v){ localStorage.setItem(LS_TOK, v); }
-function clearConfig(){ localStorage.removeItem(LS_API); localStorage.removeItem(LS_TOK); }
-
-// One-shot: if URL has ?api= or ?t=, store and strip
-{
-  const q = readQuery();
-  if (q.api) setApi(q.api);
-  if (q.t) setTok(q.t);
-  if (q.api || q.t) cleanQuery();
-}
 
 const log = document.getElementById('log');
 const typingInd = document.getElementById('typing-ind');
@@ -175,71 +152,103 @@ const msgCountEl = document.getElementById('msg-count');
 const latencyEl = document.getElementById('latency');
 const emptyState = document.getElementById('empty-state');
 const gate = document.getElementById('gate');
-const gApi = document.getElementById('g-api');
-const gTok = document.getElementById('g-tok');
-const gGo = document.getElementById('g-go');
 const gErr = document.getElementById('g-err');
 const resetLink = document.getElementById('reset-link');
 
+let API_BASE = localStorage.getItem(LS_API) || '';
+let TOKEN    = localStorage.getItem(LS_TOK) || '';
 let lastTs = 0;
 let pendingFiles = [];
 let totalMsgs = 0;
 let pollTimer = null;
+let runtimeTimer = null;
 
 function escapeHTML(s){
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+function formatSize(n){
+  if (!n) return '';
+  if (n < 1024) return n + ' B';
+  if (n < 1024*1024) return (n/1024).toFixed(1) + ' KB';
+  return (n/1024/1024).toFixed(2) + ' MB';
+}
+
 function absUrl(rel){
-  const api = getApi();
-  if (!api) return rel;
+  if (!API_BASE) return rel;
   if (rel.startsWith('http')) return rel;
   const sep = rel.includes('?') ? '&' : '?';
-  return api + rel + sep + 't=' + encodeURIComponent(getTok());
+  return API_BASE + rel + sep + 't=' + encodeURIComponent(TOKEN);
 }
 
 async function api(path, opts){
   opts = opts || {};
   opts.headers = opts.headers || {};
-  opts.headers['X-Auth-Token'] = getTok();
-  const r = await fetch(getApi() + path, opts);
-  if (r.status === 401) {
-    showGate('Invalid token.');
-    throw new Error('401');
-  }
-  return r;
+  opts.headers['X-Auth-Token'] = TOKEN;
+  return fetch(API_BASE + path, opts);
 }
 
-function showGate(err){
+function showGate(text, isError){
   if (pollTimer) { clearTimeout(pollTimer); pollTimer = null; }
-  gApi.value = getApi();
-  gTok.value = getTok();
-  gErr.textContent = err || '';
   gate.style.display = 'grid';
-  gApi.focus();
+  const p = gate.querySelector('p');
+  if (p && text) p.textContent = text;
+  gErr.textContent = isError ? text : '';
 }
 function hideGate(){ gate.style.display = 'none'; }
 
-gGo.addEventListener('click', async () => {
-  const a = gApi.value.trim();
-  const t = gTok.value.trim();
-  if (!a || !t) { gErr.textContent = 'Both URL and token required.'; return; }
-  // Test the combo
+async function fetchRuntime(){
+  // Cache-busting to bypass raw.githubusercontent CDN
   try {
-    const r = await fetch(a.replace(/\/+$/,'') + '/api/messages?since=9999999999', { headers: { 'X-Auth-Token': t } });
-    if (r.status !== 200) { gErr.textContent = 'Backend rejected ('+r.status+').'; return; }
-    setApi(a); setTok(t);
-    hideGate();
-    lastTs = 0; totalMsgs = 0; log.innerHTML = '<div class="empty">No messages yet. Type below or drag a file in.</div>';
-    poll();
+    const r = await fetch(RUNTIME_URL + '?_=' + Date.now(), { cache: 'no-store' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const j = await r.json();
+    return j;
   } catch (e) {
-    gErr.textContent = 'Cannot reach backend: ' + e.message;
+    return null;
   }
-});
-gApi.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); gTok.focus(); } });
-gTok.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); gGo.click(); } });
+}
 
-resetLink.addEventListener('click', e => { e.preventDefault(); clearConfig(); location.reload(); });
+async function bootstrapRuntime(){
+  const cfg = await fetchRuntime();
+  if (cfg && cfg.api && cfg.token) {
+    setRuntime(cfg.api, cfg.token);
+    hideGate();
+    if (emptyState && totalMsgs === 0) emptyState.textContent = 'No messages yet. Type below or drag a file in.';
+    poll();
+    return true;
+  }
+  // Fallback: localStorage
+  if (API_BASE && TOKEN) {
+    hideGate();
+    poll();
+    return true;
+  }
+  showGate('Cannot reach runtime config and no local cache available.', true);
+  return false;
+}
+
+function setRuntime(api, tok){
+  let changed = false;
+  if (api && api !== API_BASE) { API_BASE = api.replace(/\/+$/,''); localStorage.setItem(LS_API, API_BASE); changed = true; }
+  if (tok && tok !== TOKEN)    { TOKEN    = tok; localStorage.setItem(LS_TOK, tok); changed = true; }
+  if (changed) {
+    // Reset state so we re-render messages with new origin
+    lastTs = 0; totalMsgs = 0;
+    log.innerHTML = '<div class="empty" id="empty-state">Loaded from runtime config.</div>';
+  }
+}
+
+async function checkRuntimeUpdate(){
+  const cfg = await fetchRuntime();
+  if (cfg && cfg.api && cfg.token) {
+    if (cfg.api !== API_BASE || cfg.token !== TOKEN) {
+      setRuntime(cfg.api, cfg.token);
+      if (pollTimer) { clearTimeout(pollTimer); pollTimer = null; }
+      poll();
+    }
+  }
+}
 
 function renderMessage(m){
   const empty = document.getElementById('empty-state');
@@ -290,18 +299,17 @@ function renderMessage(m){
   msgCountEl.textContent = totalMsgs + ' messages';
 }
 
-function formatSize(n){
-  if (!n) return '';
-  if (n < 1024) return n + ' B';
-  if (n < 1024*1024) return (n/1024).toFixed(1) + ' KB';
-  return (n/1024/1024).toFixed(2) + ' MB';
-}
-
 async function poll(){
-  if (!getApi() || !getTok()) { showGate(); return; }
+  if (!API_BASE || !TOKEN) { showGate('Waiting for runtime config…', false); return; }
   const t0 = performance.now();
   try {
     const r = await api('/api/messages?since=' + lastTs);
+    if (r.status === 401) {
+      // Token rotated; re-fetch runtime
+      await checkRuntimeUpdate();
+      pollTimer = setTimeout(poll, 1500);
+      return;
+    }
     const data = await r.json();
     const dt = Math.round(performance.now() - t0);
     latencyEl.textContent = dt + 'ms';
@@ -318,10 +326,10 @@ async function poll(){
       typingInd.classList.remove('on');
     }
   } catch (e) {
-    if (String(e.message) !== '401') {
-      liveDot.classList.remove('live'); liveDot.classList.remove('typing');
-      liveText.textContent = 'reconnecting…';
-    }
+    liveDot.classList.remove('live'); liveDot.classList.remove('typing');
+    liveText.textContent = 'reconnecting…';
+    // Try fetching runtime to see if backend URL changed
+    await checkRuntimeUpdate();
   } finally {
     pollTimer = setTimeout(poll, 1500);
   }
@@ -397,8 +405,15 @@ window.addEventListener('drop', async e => {
   }
 });
 
-// Start
-if (!getApi() || !getTok()) showGate(); else poll();
+resetLink.addEventListener('click', async e => {
+  e.preventDefault();
+  showGate('Re-fetching runtime…', false);
+  await bootstrapRuntime();
+});
+
+// Boot
+bootstrapRuntime();
+runtimeTimer = setInterval(checkRuntimeUpdate, RUNTIME_POLL_MS);
 inputEl.focus();
 </script>
 </body>
