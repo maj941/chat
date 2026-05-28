@@ -531,9 +531,19 @@ def kick_user(user_id):
 def _user_can_see_conv(user, conv):
     if not user:
         return False
+    # Captain is system: by default only Global; never private DMs between users.
+    # Future: per-user "Ask Captain" channels (type=captain_dm) — not yet wired.
+    if user.get("role") == "captain":
+        if conv["type"] == "global":
+            return True
+        if conv["type"] == "captain_dm":
+            return True
+        return False
     if conv["type"] == "global":
         return True
     if conv["type"] == "dm":
+        return user["id"] in conv.get("members", [])
+    if conv["type"] == "captain_dm":
         return user["id"] in conv.get("members", [])
     return False
 
@@ -545,10 +555,31 @@ def _ensure_global():
         save_convs(convs)
 
 
+def _ensure_captain_dm_for(user_id, username):
+    """Ensure a captain_dm conv exists for the given user. Returns it."""
+    convs = load_convs()
+    for c in convs:
+        if c.get("type") == "captain_dm" and user_id in c.get("members", []):
+            return c
+    new = {
+        "id": "c_" + uuid.uuid4().hex[:10],
+        "name": f"Captain ↔ {username}",
+        "type": "captain_dm",
+        "members": [user_id, "u_captain"],
+        "created_at": time.time(),
+    }
+    convs.append(new)
+    save_convs(convs)
+    return new
+
+
 @app.route("/api/conversations", methods=["GET"])
 def list_convs():
-    convs = load_convs()
     user = request.actor_user
+    # Auto-provision a private Captain channel for every active human user.
+    if user and user.get("role") in ("user", "admin"):
+        _ensure_captain_dm_for(user["id"], user["name"])
+    convs = load_convs()
     visible = [c for c in convs if _user_can_see_conv(user, c)]
     return jsonify({"conversations": visible})
 
@@ -690,7 +721,16 @@ def wait_for_message():
         msgs = load_messages()
         # For Captain (root bearer): any non-captain msg counts as "new user"
         if request.actor_kind == "captain":
-            new = [m for m in msgs if m.get("user_role") in ("user", "admin") and m["ts"] > since]
+            # Captain only listens to channels Captain may participate in
+            # (Global + captain_dm). Skip user-to-user DMs.
+            convs = {c["id"]: c for c in load_convs()}
+            allowed_types = ("global", "captain_dm")
+            new = [
+                m for m in msgs
+                if m.get("user_role") in ("user", "admin")
+                and m["ts"] > since
+                and (convs.get(m.get("conv_id", "c_global")) or {}).get("type") in allowed_types
+            ]
         else:
             visible = _filter_msgs_for_user(msgs, request.actor_user, conv_id)
             new = [m for m in visible if m.get("user_id") != request.actor_user["id"] and m["ts"] > since]
