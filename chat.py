@@ -180,6 +180,19 @@ def cmd_typing(state):
     print(json.dumps(r, ensure_ascii=False, indent=2))
 
 
+def cmd_doing(text):
+    """Set or clear current agent action shown next to the typing indicator.
+
+    `chat.py doing "text"`  -> sets current_action
+    `chat.py doing off`     -> clears current_action
+    """
+    if text.lower() in ("off", "clear", "-", "none", ""):
+        r = _req("/api/state", method="POST", body={"current_action": ""})
+    else:
+        r = _req("/api/state", method="POST", body={"current_action": text, "agent_typing": True})
+    print(json.dumps(r, ensure_ascii=False, indent=2))
+
+
 def cmd_wait(timeout_str, interval_str):
     """Legacy short-polling fallback."""
     try:
@@ -289,6 +302,7 @@ Commands:
   send "text"                  Send assistant message
   send-file <path> [caption]   Send file (assistant role)
   typing on|off                Toggle 'Captain typing…' indicator
+  doing "text" | off           Set/clear current agent action (shown in UI)
   wait <timeout_s> <interval>  Legacy short-poll fallback
   wait-long <timeout_s>        Server long-poll (instant wake, recommended)
   mark-seen                    Mark all current user messages as seen
@@ -327,6 +341,11 @@ def main():
             print("typing requires on|off")
             sys.exit(2)
         cmd_typing(args[0])
+    elif cmd == "doing":
+        if not args:
+            print("doing requires <text> or 'off'")
+            sys.exit(2)
+        cmd_doing(" ".join(args))
     elif cmd == "wait":
         t = args[0] if len(args) > 0 else "60"
         i = args[1] if len(args) > 1 else "2"

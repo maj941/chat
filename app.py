@@ -38,7 +38,7 @@ if not os.path.exists(MSG_FILE):
         json.dump([], f)
 if not os.path.exists(STATE_FILE):
     with open(STATE_FILE, "w") as f:
-        json.dump({"agent_typing": False, "last_seen_by_agent": 0}, f)
+        json.dump({"agent_typing": False, "current_action": "", "last_seen_by_agent": 0}, f)
 if not os.path.exists(TOKEN_FILE):
     with open(TOKEN_FILE, "w") as f:
         f.write(secrets.token_urlsafe(32))
@@ -188,7 +188,11 @@ def get_messages():
     if since > 0:
         msgs = [m for m in msgs if m["ts"] > since]
     state = load_state()
-    return jsonify({"messages": msgs, "agent_typing": state.get("agent_typing", False)})
+    return jsonify({
+        "messages": msgs,
+        "agent_typing": state.get("agent_typing", False),
+        "current_action": state.get("current_action", ""),
+    })
 
 
 @app.route("/api/messages", methods=["POST"])
@@ -236,13 +240,23 @@ def wait_for_message():
         if new:
             state = load_state()
             return jsonify(
-                {"messages": new, "agent_typing": state.get("agent_typing", False), "timed_out": False}
+                {
+                    "messages": new,
+                    "agent_typing": state.get("agent_typing", False),
+                    "current_action": state.get("current_action", ""),
+                    "timed_out": False,
+                }
             )
         remaining = deadline - time.time()
         if remaining <= 0:
             state = load_state()
             return jsonify(
-                {"messages": [], "agent_typing": state.get("agent_typing", False), "timed_out": True}
+                {
+                    "messages": [],
+                    "agent_typing": state.get("agent_typing", False),
+                    "current_action": state.get("current_action", ""),
+                    "timed_out": True,
+                }
             )
         _user_msg_event.wait(timeout=min(remaining, 30.0))
 
