@@ -631,6 +631,26 @@ def _filter_msgs_for_user(msgs, user, conv_id=None):
     return out
 
 
+def _agent_status_for(user):
+    """Scope the agent's live status to the conversation it is serving.
+
+    Only the user the agent is currently working for (a member of active_conv)
+    sees the real typing indicator / current action; everyone else just learns
+    the agent is busy with someone else.
+    """
+    state = load_state()
+    typing = bool(state.get("agent_typing", False))
+    action = state.get("current_action", "") or ""
+    active = state.get("active_conv", "") or ""
+    if not typing and not action:
+        return {"agent_typing": False, "current_action": "", "agent_busy_other": False}
+    if active and user:
+        conv = next((c for c in load_convs() if c["id"] == active), None)
+        if conv and _user_can_see_conv(user, conv):
+            return {"agent_typing": typing, "current_action": action, "agent_busy_other": False}
+    return {"agent_typing": typing, "current_action": "", "agent_busy_other": True}
+
+
 @app.route("/api/messages", methods=["GET"])
 def get_messages():
     since = float(request.args.get("since", "0"))
@@ -639,12 +659,10 @@ def get_messages():
     msgs = _filter_msgs_for_user(msgs, request.actor_user, conv_id)
     if since > 0:
         msgs = [m for m in msgs if m["ts"] > since]
-    state = load_state()
     return jsonify(
         {
             "messages": msgs,
-            "agent_typing": state.get("agent_typing", False),
-            "current_action": state.get("current_action", ""),
+            **_agent_status_for(request.actor_user),
         }
     )
 
@@ -735,23 +753,19 @@ def wait_for_message():
             visible = _filter_msgs_for_user(msgs, request.actor_user, conv_id)
             new = [m for m in visible if m.get("user_id") != request.actor_user["id"] and m["ts"] > since]
         if new:
-            state = load_state()
             return jsonify(
                 {
                     "messages": new,
-                    "agent_typing": state.get("agent_typing", False),
-                    "current_action": state.get("current_action", ""),
+                    **_agent_status_for(request.actor_user),
                     "timed_out": False,
                 }
             )
         remaining = deadline - time.time()
         if remaining <= 0:
-            state = load_state()
             return jsonify(
                 {
                     "messages": [],
-                    "agent_typing": state.get("agent_typing", False),
-                    "current_action": state.get("current_action", ""),
+                    **_agent_status_for(request.actor_user),
                     "timed_out": True,
                 }
             )
