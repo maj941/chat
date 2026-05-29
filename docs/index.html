@@ -507,18 +507,25 @@ async function poll(){
     if (data.messages && data.messages.length) {
       data.messages.forEach(m => { renderMessage(m); if (m.ts > lastTs) lastTs = m.ts; });
     }
-    if (data.agent_typing) {
+    if (data.agent_busy_other) {
+      $('typing-ind').classList.add('on');
+      $('live-dot').classList.remove('live'); $('live-dot').classList.add('typing');
+      $('live-text').textContent = 'busy';
+      $('typing-text').textContent = 'Агент занят другим пользователем';
+      $('current-action').textContent = '';
+    } else if (data.agent_typing) {
       $('typing-ind').classList.add('on');
       $('live-dot').classList.remove('live'); $('live-dot').classList.add('typing');
       $('live-text').textContent = 'typing';
       $('typing-text').textContent = 'Captain typing…';
-    } else {
-      $('typing-ind').classList.remove('on');
-    }
-    $('current-action').textContent = data.current_action ? '— ' + data.current_action : '';
-    if (data.current_action && !data.agent_typing) {
+      $('current-action').textContent = data.current_action ? '— ' + data.current_action : '';
+    } else if (data.current_action) {
       $('typing-ind').classList.add('on');
       $('typing-text').textContent = '';
+      $('current-action').textContent = '— ' + data.current_action;
+    } else {
+      $('typing-ind').classList.remove('on');
+      $('current-action').textContent = '';
     }
   } catch (e) {
     $('live-dot').classList.remove('live'); $('live-dot').classList.remove('typing');
