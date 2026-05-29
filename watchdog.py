@@ -303,9 +303,9 @@ def main():
             pages = _load_pages_url()
             if pages:
                 pages_clean = pages.rstrip("/") + "/"
-                display_url = f"{pages_clean}?api={url}&t={token}" if token else f"{pages_clean}?api={url}"
+                display_url = f"{pages_clean}?api={url}"  # security: never embed root token
             else:
-                display_url = f"{url}/?t={token}" if token else url
+                display_url = url  # security: never embed root token
             if display_url != last_known_url:
                 log(f"URL changed: {last_known_url!r} -> {display_url!r}")
                 had_prev = bool(last_known_url)
