@@ -116,11 +116,45 @@
   .ws-list .it { display: flex; justify-content: space-between; padding: 7px 9px; border-radius: 7px; background: var(--panel-2); cursor: pointer; font-size: 13px; font-family: ui-monospace, monospace; }
   .ws-list .it:hover { background: rgba(124,92,255,.18); }
   .ws-edit textarea { width: 100%; min-height: 280px; font-family: ui-monospace, monospace; font-size: 12.5px; }
+  /* Mobile menu button + drawer backdrop (hidden on desktop) */
+  .menu-btn { display: none; width: 34px; height: 34px; border-radius: 9px; background: var(--panel-2); border: 1px solid var(--border); color: var(--text); cursor: pointer; font-size: 18px; place-items: center; flex: 0 0 auto; }
+  .sb-backdrop { display: none; }
+  /* ─── Mobile / narrow screens ───────────────────────── */
+  @media (max-width: 720px) {
+    body { font-size: 15px; }
+    header { padding: 8px 10px; gap: 8px; }
+    .brand { gap: 8px; font-size: 15px; min-width: 0; }
+    .logo { width: 26px; height: 26px; font-size: 13px; }
+    .meta { gap: 6px; justify-content: flex-end; }
+    .pill { padding: 4px 8px; font-size: 11px; }
+    .menu-btn { display: grid; }
+    .sidebar {
+      position: fixed; top: 0; left: 0; bottom: 0;
+      width: 80%; max-width: 300px; flex-basis: auto;
+      z-index: 2500; transform: translateX(-100%);
+      transition: transform .22s ease; box-shadow: 2px 0 22px rgba(0,0,0,.55);
+    }
+    .sidebar.open { transform: translateX(0); }
+    .sb-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 2400; }
+    .sb-backdrop.on { display: block; }
+    main { padding: 12px 10px 6px; }
+    .bubble { max-width: 90%; }
+    .composer { gap: 6px; }
+    .attach { width: 36px; height: 36px; font-size: 16px; }
+    .send { padding: 0 14px; height: 42px; }
+    textarea { min-height: 44px; }
+    .modal { z-index: 2700; }
+    .modal .card { padding: 18px 16px; }
+    .modal .grid { grid-template-columns: 1fr; }
+    .modal .add { grid-template-columns: 1fr 1fr; }
+    .typing .action { max-width: 60vw; }
+  }
 </style>
 </head>
 <body>
   <header>
     <div class="brand">
+      <button class="menu-btn" id="menu-btn" aria-label="Меню" title="Меню">☰</button>
       <div class="logo">C</div>
       <div>Captain</div>
       <span class="pill"><span class="dot" id="live-dot"></span><span id="live-text">connecting…</span></span>
@@ -141,6 +175,7 @@
         <button class="sb-btn" id="new-dm-btn" style="margin-top:8px">+ New DM</button>
       </div>
     </div>
+    <div class="sb-backdrop" id="sb-backdrop"></div>
 
     <div style="display:flex;flex-direction:column;flex:1 1 auto;min-width:0">
       <main id="log">
@@ -377,7 +412,7 @@ function renderConvList(){
     const it = document.createElement('div');
     it.className = 'sb-item' + (c.id === CONV_ID ? ' active' : '');
     it.innerHTML = `<span>${escapeHTML(convDisplayLabel(c))}</span><span style="font-size:10.5px;color:var(--muted)">${convIcon(c)}</span>`;
-    it.onclick = () => { CONV_ID = c.id; localStorage.setItem(LS_CONV, CONV_ID); lastTs = 0; totalMsgs = 0; document.querySelectorAll('.row').forEach(r => r.remove()); renderConvList(); renderConvLabel(); poll(); };
+    it.onclick = () => { CONV_ID = c.id; localStorage.setItem(LS_CONV, CONV_ID); lastTs = 0; totalMsgs = 0; document.querySelectorAll('.row').forEach(r => r.remove()); renderConvList(); renderConvLabel(); poll(); closeSidebar(); };
     box.appendChild(it);
   });
 }
@@ -585,6 +620,7 @@ $('logout-btn').onclick = () => logout(true);
 
 // ─── DM modal ───────────────────────────────────────────────────────────────
 $('new-dm-btn').onclick = async () => {
+  closeSidebar();
   // For non-admin users, we still need a list of who's available — fetch via admin-only endpoint
   // If non-admin, fall back to checking message authors for names
   let candidates = USERS.length ? USERS : [];
@@ -648,6 +684,12 @@ $('ws-del').onclick = async () => {
   await api('/api/workspace/delete', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({path: p})});
   $('ws-content').value = ''; $('ws-path').value = ''; wsRefresh();
 };
+
+// ─── Mobile sidebar drawer ──────────────────────────────────────
+function closeSidebar(){ const sb = $('sidebar'); if (sb) sb.classList.remove('open'); const bd = $('sb-backdrop'); if (bd) bd.classList.remove('on'); }
+function toggleSidebar(){ const sb = $('sidebar'); if (!sb) return; const open = sb.classList.toggle('open'); const bd = $('sb-backdrop'); if (bd) bd.classList.toggle('on', open); }
+if ($('menu-btn')) $('menu-btn').onclick = toggleSidebar;
+if ($('sb-backdrop')) $('sb-backdrop').onclick = closeSidebar;
 
 // Boot
 bootstrap();
